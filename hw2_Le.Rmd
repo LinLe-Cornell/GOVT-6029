@@ -1,0 +1,250 @@
+---
+title: "hw2_Le"
+author: "Lin Le"
+date: "3/18/2018"
+output: html_document
+---
+# Problem 1
+## Section 1: Matrix Form
+
+```{r}
+# load data
+sp <- read.csv("sprinters.csv")
+```
+
+```{r}
+# matrix X
+X <- matrix(c(rep.int(1,42), sp$year, sp$women), ncol = 3)
+
+# matrix y
+y <- matrix(sp$finish, ncol = 1)
+
+# computing the beta
+library(matrixcalc) # first, install.packages("matrixcalc")
+beta <- matrix.power((t(X) %*% X), -1) %*% t(X) %*% y
+```
+```{r}
+beta
+```
+
+
+## Section 2: Fitting a linear model
+### the regression
+```{r message=FALSE}
+library(knitr)  
+library(dplyr)
+library(ggplot2) 
+library(tidyr)
+```
+
+```{r}
+y <- sp$year
+w <- sp$women
+f <- sp$finish
+reg1 <- lm(f ~ y + w)
+summary(reg1)
+```
+
+#### Comparison: the results (coefficients) are the same  
+
+### Plot 1:
+```{r}
+p1 <- ggplot(sp %>% mutate(new = predict(reg1)),
+       aes(x = y, group = w, color = w)) +
+  geom_point(aes(y = f)) +
+  geom_line(aes(y = new)) +
+  scale_color_gradient(low="blue", high="red") +
+  ylab("Best time in seconds in the meter sprint") +
+  xlab("The year of the competition") +
+  ggtitle("Plot 1")
+
+p1
+```
+
+### Re-run the regression with interaction
+```{r}
+interaction <- y*w
+reg2 <- lm(f ~ y + w + interaction)
+summary(reg2)
+```
+
+### Plot 2
+```{r}
+p2 <- ggplot(sp %>% mutate(new = predict(reg2)),
+       aes(x = y, group = w, colour = w)) +
+  geom_point(aes(y = f)) +
+  geom_line(aes(y = new)) +
+  scale_color_gradient(low="blue", high="red") +
+  ylab("Best time in seconds in the meter sprint") +
+  xlab("The year of the competition") +
+  ggtitle("Plot 1")
+
+p2
+```
+
+## Section 3: Predicted Values
+### using the regression model with interaction
+```{r}
+women2001 <- predict(reg2, newdata = data.frame(y = 2001, w = 1, interaction = 2001*1))
+men2001 <- predict(reg2, newdata = data.frame(y = 2001, w = 0, interaction = 2001*0))
+```
+```{r}
+women2001 # women
+men2001 # men
+```
+
+### 95% confidence interval
+```{r}
+# women
+predict(reg2, newdata = data.frame(y = 2001, w = 1, interaction = 2001*1), interval = "confidence", level = 0.95)
+```
+#### Women's confidence interval: [10.54469, 10.82748]
+```{r}
+# men
+predict(reg2, newdata = data.frame(y = 2001, w = 0, interaction = 2001*0), interval = "confidence", level = 0.95)
+```
+#### Men's confidence interval: [9.679561 9.929086]
+
+
+### 2156 Olympics prediction
+```{r}
+women2156 <- predict(reg2, newdata = data.frame(y = 2156, w = 1, interaction = 2156*1), interval = "confidence", level = 0.95)
+
+men2156 <- predict(reg2, newdata = data.frame(y = 2156, w = 0, interaction = 2156*0), interval = "confidence", level = 0.95)
+```
+```{r}
+women2156 # women
+men2156 # men
+```
+
+#### Conclusin: No, I don't trust the 2156 prediction. Relatively, I trust the 2001 prediction more than the 2156 result. The reason is that there should be a natural limit of how fast human can run.
+
+
+#### The assumption that human can run faster and faster time goes on is problematic. Just try use the model to predict the finishing times for 3000BC. The result becomes negative, which is logically impossible.
+```{r}
+men3000 <- predict(reg2, newdata = data.frame(y = 3000, w = 0, interaction = 3000*0))
+men3000
+```
+```{r}
+women3000 <- predict(reg2, newdata = data.frame(y = 3000, w = 1, interaction = 3000*1))
+women3000
+```
+
+# Problem 2
+
+```{r message=FALSE}
+data("anscombe")
+library(tidyverse)
+anscombe2 <- anscombe %>%
+    mutate(obs = row_number()) %>%
+    gather(variable_dataset, value, - obs) %>%
+    separate(variable_dataset, c("variable", "dataset"), sep = 1L) %>%
+    spread(variable, value) %>%
+    arrange(dataset, obs)
+anscombe2$dataset <- as.numeric(anscombe2$dataset)
+```
+
+## Section 4: Looking at your data beyond summary statistics
+```{r}
+x1 <-  anscombe2[anscombe2$dataset == 1,]$x
+y1 <-  anscombe2[anscombe2$dataset == 1,]$y
+
+x2 <-  anscombe2[anscombe2$dataset == 2,]$x
+y2 <-  anscombe2[anscombe2$dataset == 2,]$y
+
+x3 <-  anscombe2[anscombe2$dataset == 3,]$x
+y3 <-  anscombe2[anscombe2$dataset == 3,]$y
+
+x4 <-  anscombe2[anscombe2$dataset == 4,]$x
+y4 <-  anscombe2[anscombe2$dataset == 4,]$y
+```
+
+### Dataset 1
+```{r}
+mean(x1)
+mean(y1)
+sd(x1)
+sd(y1)
+cor(x1,y1)
+
+# regression of dataset 1
+reg1 <- lm(y1 ~ x1)
+summary(reg1)
+```
+
+#### Dataset 2
+```{r}
+mean(x2)
+mean(y2)
+sd(x2)
+sd(y2)
+cor(x2,y2)
+
+# regression of dataset 2
+reg2 <- lm(y2 ~ x2)
+summary(reg2)
+```
+
+### Dataset 3
+```{r}
+mean(x3)
+mean(y3)
+sd(x3)
+sd(y3)
+cor(x3,y3)
+
+# regression of dataset 3
+reg3 <- lm(y3 ~ x3)
+summary(reg3)
+```
+
+### Dataset 4
+```{r}
+mean(x4)
+mean(y4)
+sd(x4)
+sd(y4)
+cor(x4,y4)
+
+# regression of dataset 4
+reg4 <- lm(y4 ~ x4)
+summary(reg4)
+```
+
+#### Obervation based on regression model information: these four regression models look very similar in terms of their coefficients. 
+
+### four plots
+```{r}
+par(mfrow=c(2,2))
+
+plot(x1,y1)
+abline(reg1)
+plot(x2,y2)
+abline(reg2)
+plot(x3,y3)
+abline(reg3)
+plot(x4,y4)
+abline(reg4)
+```
+
+#### Conclusion: data visualization is an effective way to check linearity. The four plots have almost the same regression line, but actually the regression lines produced according to the OLS rule do not necessarily capture the real picture of the data points.
+
+# Problem 3
+## Section 5: Reseaerch project
+#### The key dependent variable is the number of events held in each province of China by Maoists to commemorate Mao Zedong's birthday. So the data is continuous. (This set of number is to be normalized by the population of each province.) Higher number indicates higher degree of conservatism. The research is to explore what are the factors that explain the varying degree of conservatism in different localities in China. 
+
+#### I have included a histogram of the dependent variable here. The distribution is skewed to the left.
+
+```{r}
+eventNO <- c(171,163,119,105,94,78,72,54,50,50,48,41,39,37,32,30,28,28, 25,24,26,22,21,19,17,16,15,8,6,3)
+hist(eventNO, xlim = range(0,200), ylim = range(0,15), xlab = "Number of Events", main = "Histogram of Commemoration Events")
+```
+
+#### Major independent variables include the number of designated "old revolutionary area" in each province (continuous variable), the number of death and victim during the Cultural Revolution (continuous variable), level of economic development (i.e. GDP/income/Gini Index, continuous variable), proportion of ethnic majority (continuous variable), number and scale of state-owned enterprises (continuous variable).
+
+#### Major problems might be missing variables and multicolinearity.
+
+
+
+
+
